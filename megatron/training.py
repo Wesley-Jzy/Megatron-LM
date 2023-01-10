@@ -40,6 +40,15 @@ from megatron.schedules import get_forward_backward_func
 from megatron.utils import report_memory
 from megatron.model.vision.knn_monitor import compute_feature_bank
 
+def get_tflops(model_numel, batch_size, seq_len, step_time):
+    return model_numel * batch_size * seq_len * 8 / 1e12 / (step_time + 1e-12)
+
+def get_model_size(model):
+    total_numel = 0
+    for module in model.modules():
+        for p in module.parameters(recurse=False):
+            total_numel += p.numel()
+    return total_numel
 
 def print_datetime(string):
     """Note that this call will sync across all ranks."""
@@ -658,9 +667,11 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
     # Write args to tensorboard
     write_args_to_tensorboard()
 
+    model_numel = 0
     # Turn on training mode which enables dropout.
     for model_module in model:
         model_module.train()
+        model_numel  += get_model_size(model_module)
 
     # Tracking loss.
     total_loss_dict = {}
@@ -671,7 +682,9 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
     timers('interval-time', log_level=0).start(barrier=True)
     print_datetime('before the start of training step')
     report_memory_flag = True
+    torch.cuda.synchronize()
     while iteration < args.train_iters:
+        start = time.time()
         update_num_microbatches(args.consumed_train_samples)
         args.curr_iteration = iteration
         loss_dict, skipped_iter, grad_norm, num_zeros_in_grad = \
@@ -680,6 +693,11 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
                        model,
                        optimizer,
                        opt_param_scheduler)
+        torch.cuda.synchronize()
+        end = time.time()
+        step_time = end - start
+        tflops = get_tflops(model_numel, args.data_parallel_size*args.micro_batch_size, args.seq_length, step_time)
+        print(f"{model_numel=} | {args.data_parallel_size=} | {args.micro_batch_size=} | {args.seq_length=} | {step_time=}s | {tflops=}")
         iteration += 1
         args.consumed_train_samples += mpu.get_data_parallel_world_size() * \
                                        args.micro_batch_size * \

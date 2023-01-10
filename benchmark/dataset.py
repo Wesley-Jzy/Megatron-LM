@@ -3,9 +3,8 @@ import numpy as np
 import random
 import string
 
-
 def get_data(micro_batch_size, seq_len, vocab_size):
-    t = torch.randint(0, vocab_size, (seq_len,))
+    t = torch.randint(0, vocab_size, (seq_len+1,))
     return t
 
 class RandomTextDataset(torch.utils.data.Dataset):
