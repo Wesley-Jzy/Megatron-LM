@@ -696,7 +696,7 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
         torch.cuda.synchronize()
         end = time.time()
         step_time = end - start
-        tflops = get_tflops(model_numel, args.data_parallel_size*args.micro_batch_size, args.seq_length, step_time)
+        tflops = get_tflops(model_numel, args.micro_batch_size, args.seq_length, step_time)
         print(f"{model_numel=} | {args.data_parallel_size=} | {args.micro_batch_size=} | {args.seq_length=} | {step_time=}s | {tflops=}")
         iteration += 1
         args.consumed_train_samples += mpu.get_data_parallel_world_size() * \

@@ -12,7 +12,7 @@ CHECKPOINT_PATH=/home/lcjzy/data2/workspace/GPT/ckpts
 VOCAB_FILE=/data/scratch/Megatron_data/vocab/gpt2-vocab.json
 MERGE_FILE=/data/scratch/Megatron_data/vocab/gpt2-merges.txt
 DATA_PATH=/home/lcjzy/data2/workspace/GPT/data/my-gpt2_text_document
-GPT_ARGS="--num-layers 50 --hidden-size 4096 --num-attention-heads 16 --seq-length 1024 --max-position-embeddings 1024 --micro-batch-size 8 --lr 0.0005 --train-iters 150000 --lr-decay-iters 150000 --lr-decay-style cosine --lr-warmup-iters 2000 --weight-decay .1 --adam-beta2 .999 --fp16 --log-interval 10 --save-interval 2000 --eval-interval 200 --eval-iters 10"
+GPT_ARGS="--num-layers 50 --hidden-size 4096 --num-attention-heads 16 --seq-length 1024 --max-position-embeddings 1024 --micro-batch-size 8 --lr 0.0005 --train-iters 150000 --lr-decay-iters 150000 --lr-decay-style cosine --lr-warmup-iters 1 --weight-decay .1 --adam-beta2 .999 --fp16 --log-interval 10 --save-interval 2000 --eval-interval 200 --eval-iters 10"
 TENSORBOARD_ARGS="--tensorboard-dir experiments/tensorboard"
 python3 -m torch.distributed.launch $DISTRIBUTED_ARGS \
         benchmark_gpt.py \
@@ -26,5 +26,5 @@ python3 -m torch.distributed.launch $DISTRIBUTED_ARGS \
         --data-path $DATA_PATH \
         $TENSORBOARD_ARGS \
         --use-distributed-optimizer \
-        --recompute-activations \
-        --recompute-granularity full
+        --recompute-granularity 'full' \
+        --recompute-method 'uniform'
